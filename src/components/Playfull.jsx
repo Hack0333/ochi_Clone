@@ -5,13 +5,11 @@ import video from '/assets/Main-HQ-1.mp4'
 const Playfull = () => {
 
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [eyePosition, setEyePosition] = useState({ x: 0, y: 0 });
-  const [rotate , setRotate] = useState(0);
+  const eyesRef = useRef([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef(null);
   const textRef = useRef(null);
 
-  // Update mouse position on mouse move
   useEffect(() => {
     const handleMouseMove = (event) => {
       setMousePosition({
@@ -26,34 +24,6 @@ const Playfull = () => {
       window.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
-
-  // Update eye pupil position based on mouse position
-  useEffect(() => {
-    const updateEyePosition = () => {
-      // Get the center of the eye
-      let eyeCenterX = window.innerWidth / 2;
-      let eyeCenterY = window.innerHeight / 2;
-
-      // Calculate the direction vector
-      let deltaX = mousePosition.x - eyeCenterX;
-      let deltaY = mousePosition.y - eyeCenterY;
-      let angle = Math.atan2(deltaY, deltaX);
-      // Convert radians to degrees
-      const rotateAngle = angle * (180 / Math.PI);
-
-      // Adjust rotation by 90 degrees if needed (depends on the initial rotation of the line)
-      const adjustedRotateAngle = rotateAngle - 180;
-      setRotate(adjustedRotateAngle)
-      // Update the pupil position
-      const distance = Math.min(Math.hypot(deltaX, deltaY), 10); // Limit pupil movement
-      setEyePosition({
-        x: Math.cos(angle) * distance,
-        y: Math.sin(angle) * distance,
-      });
-    };
-    
-    updateEyePosition();
-  }, [mousePosition]);
 
   const playVideo=()=>{
     if(videoRef.current){
@@ -72,6 +42,33 @@ const Playfull = () => {
       textRef.current.style.top = `${mousePosition.y -2}px`;
     }
   }, [mousePosition]);
+
+  useEffect(()=>{
+    eyesRef.current.forEach((eye) => {
+      if(eye){
+        const eyeRect = eye.getBoundingClientRect();
+        const eyeCenterX = eyeRect.left + eyeRect.width / 2;
+        const eyeCenterY = eyeRect.top + eyeRect.height /2;
+
+        const deltaX = mousePosition.x - eyeCenterX;
+        const deltaY = mousePosition.y - eyeCenterY;
+        const angle = Math.atan2(deltaY,deltaX);
+        const distance = Math.min(Math.hypot(deltaX, deltaY), 10);
+
+        const pupilX = Math.cos(angle) * distance;
+        const pupilY = Math.sin(angle) * distance;
+
+        eye.querySelector(
+          ".eye-pupil"
+        ).style.transform = `translate(${pupilX}px , ${pupilY}px)`
+
+        eye.querySelector(
+          ".line"
+        ).style.transform = `rotate(${angle}rad)`
+
+      }
+    });
+  },[mousePosition])
 
 
   return (
@@ -94,43 +91,31 @@ const Playfull = () => {
           Paused
         </h1>
       )}
-      <div className="relative w-full h-full  bg-center bg-cover bg-ochibg">
-        <div className=" absolute top-1/2 left-1/2 -translate-x-[50%] -translate-y-[50%] flex gap-9">
-          <div className="w-[15vw] h-[15vw] bg-white rounded-full flex justify-center items-center">
-            <div className="relative w-2/3 h-2/3 bg-black rounded-full"
-               style={{
-                transform: `translate(${eyePosition.x}px, ${eyePosition.y}px)`,
-                transition: 'transform 0.1s ease-out',
-              }}
+      <div 
+      className="relative w-full h-screen  bg-center bg-cover bg-ochibg">
+      <div className=" eyecontainer w-[27vw] h-[12vw] flex gap-9 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 is-inview">
+          {[...Array(2)].map((_,index) => (
+            <div
+              key={index}
+              className="eye w-[12vw] h-[12vw] rounded-full bg-white flex justify-center items-center"
+              ref={(el) => (eyesRef.current[index] = el)}
             >
-              <h1 className="absolute top-1/2 left-1/2 -translate-x-[50%] -translate-y-[50%] uppercase font-thin">Play</h1>
-              <div className="line absolute top-1/2 left-1/2 -translate-x-[50%] -translate-y-[50%] w-full h-5 "
-                style={{
-                  transform: `translate(-50%,-50%) rotate(${rotate}deg)`,
-                }}
-              >
-                
-                <div className="w-6 h-6 bg-white rounded-full"></div>
+              <div className="eye-pupil relative w-2/3 h-2/3 bg-black rounded-full flex justify-center items-center">
+                <div
+                  className="line absolute w-full"
+                  style={{
+                    transformOrigin: "center center",
+                    position: "relative",
+                  }}
+                >
+                  <div
+                    className="dot absolute w-4 h-4 bg-white rounded-full"
+                    style={{ top: "-15px", right: "0" }}
+                  ></div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="w-[15vw] h-[15vw] bg-white rounded-full flex justify-center items-center">
-          <div className="relative w-2/3 h-2/3 bg-black rounded-full"
-               style={{
-                transform: `translate(${eyePosition.x}px, ${eyePosition.y}px)`,
-                transition: 'transform 0.1s ease-out',
-              }}
-            >
-              <h1 className="absolute top-1/2 left-1/2 -translate-x-[50%] -translate-y-[50%] uppercase font-thin">Play</h1>
-              <div className="line absolute top-1/2 left-1/2 -translate-x-[50%] -translate-y-[50%] w-full h-5"
-                 style={{
-                  transform:`translate(-50%,-50%) rotate(${rotate}deg)`
-                }}
-              >
-                <div className="w-6 h-6 bg-white rounded-full"></div>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
